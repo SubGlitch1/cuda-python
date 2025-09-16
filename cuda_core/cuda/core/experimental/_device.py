@@ -1,16 +1,15 @@
+from __future__ import annotations
+
 # SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 #
 # SPDX-License-Identifier: Apache-2.0
-
 import threading
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Union
 
 from cuda.core.experimental._context import Context, ContextOptions
 from cuda.core.experimental._event import Event, EventOptions
-from cuda.core.experimental._graph import GraphBuilder
 from cuda.core.experimental._memory import Buffer, DeviceMemoryResource, MemoryResource, _SynchronousMemoryResource
 from cuda.core.experimental._stream import IsStreamT, Stream, StreamOptions, default_stream
-from cuda.core.experimental._utils.clear_error_support import assert_type
 from cuda.core.experimental._utils.cuda_utils import (
     ComputeCapability,
     CUDAError,
@@ -19,6 +18,12 @@ from cuda.core.experimental._utils.cuda_utils import (
     handle_return,
     runtime,
 )
+
+from cuda.core.experimental._graph import GraphBuilder
+from cuda.core.experimental._utils.clear_error_support import assert_type
+
+if TYPE_CHECKING:
+    from cuda.core.experimental._memory import VMMAllocatedMemoryResource
 
 _tls = threading.local()
 _lock = threading.Lock()
@@ -964,7 +969,7 @@ class Device:
 
     __slots__ = ("_id", "_mr", "_has_inited", "_properties")
 
-    def __new__(cls, device_id: Optional[int] = None):
+    def __new__(cls, device_id: int | None = None):
         global _is_cuInit
         if _is_cuInit is False:
             with _lock:
@@ -1228,7 +1233,7 @@ class Device:
         """
         raise NotImplementedError("WIP: https://github.com/NVIDIA/cuda-python/issues/189")
 
-    def create_stream(self, obj: Optional[IsStreamT] = None, options: Optional[StreamOptions] = None) -> Stream:
+    def create_stream(self, obj: IsStreamT | None = None, options: StreamOptions | None = None) -> Stream:
         """Create a Stream object.
 
         New stream objects can be created in two different ways:
@@ -1259,7 +1264,7 @@ class Device:
         self._check_context_initialized()
         return Stream._init(obj=obj, options=options, device_id=self._id)
 
-    def create_event(self, options: Optional[EventOptions] = None) -> Event:
+    def create_event(self, options: EventOptions | None = None) -> Event:
         """Create an Event object without recording it to a Stream.
 
         Note
@@ -1281,7 +1286,7 @@ class Device:
         ctx = self._get_current_context()
         return Event._init(self._id, ctx, options)
 
-    def allocate(self, size, stream: Optional[Stream] = None) -> Buffer:
+    def allocate(self, size, stream: Stream | None = None) -> Buffer:
         """Allocate device memory from a specified stream.
 
         Allocates device memory of `size` bytes on the specified `stream`
@@ -1312,14 +1317,14 @@ class Device:
             stream = default_stream()
         return self._mr.allocate(size, stream)
 
-    def create_vmm_memory_resource(self, allocation_type=None) -> "VMMAllocatedMemoryResource":
+    def create_vmm_memory_resource(self, allocation_type=None) -> VMMAllocatedMemoryResource:
         """Create a VMMAllocatedMemoryResource for this device.
 
         Creates a memory resource that uses CUDA's Virtual Memory Management APIs
         for fine-grained control over memory allocation and mapping. This is useful for:
-        
+
         - NVSHMEM/NCCL external buffer registration
-        - Growing allocations without changing pointer addresses  
+        - Growing allocations without changing pointer addresses
         - EGM (Extended GPU Memory) on Grace-Hopper or Grace-Blackwell systems
         - Custom memory access patterns and sharing between processes
 

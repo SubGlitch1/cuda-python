@@ -516,9 +516,9 @@ class VMMAllocatedMemoryResource(MemoryResource):
     This memory resource uses cuMemCreate, cuMemAddressReserve, cuMemMap, and related
     APIs to provide fine-grained control over memory allocation and mapping. This is
     useful for:
-    
+
     - NVSHMEM/NCCL external buffer registration
-    - Growing allocations without changing pointer addresses  
+    - Growing allocations without changing pointer addresses
     - EGM (Extended GPU Memory) on Grace-Hopper or Grace-Blackwell systems
     - Custom memory access patterns and sharing between processes
 
